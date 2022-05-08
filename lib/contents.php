@@ -1,62 +1,64 @@
 <?php
 
-final class HttpException extends \Exception {}
+final class HttpException extends \Exception
+{
+}
 
 function getContents(
-	string $url,
-	array $httpHeaders = [],
-	array $curlOptions = [],
-	bool $returnHeader = false
+    string $url,
+    array $httpHeaders = [],
+    array $curlOptions = [],
+    bool $returnHeader = false
 ) {
-	$cacheFactory = new CacheFactory();
-	$cacheFactory->setWorkingDir(PATH_LIB_CACHES);
-	$cache = $cacheFactory->create(Configuration::getConfig('cache', 'type'));
-	$cache->setScope('server');
-	$cache->purgeCache(86400); // 24 hours (forced)
-	$cache->setKey([$url]);
+    $cacheFactory = new CacheFactory();
+    $cacheFactory->setWorkingDir(PATH_LIB_CACHES);
+    $cache = $cacheFactory->create(Configuration::getConfig('cache', 'type'));
+    $cache->setScope('server');
+    $cache->purgeCache(86400); // 24 hours (forced)
+    $cache->setKey([$url]);
 
-	$config = [
-		'headers' => $httpHeaders,
-		'curl_options' => $curlOptions,
-	];
-	if (defined('PROXY_URL') && !defined('NOPROXY')) {
-		$config['proxy'] = PROXY_URL;
-	}
-	if(!Debug::isEnabled() && $cache->getTime()) {
-		$config['if_not_modified_since'] = $cache->getTime();
-	}
+    $config = [
+        'headers' => $httpHeaders,
+        'curl_options' => $curlOptions,
+    ];
+    if (defined('PROXY_URL') && !defined('NOPROXY')) {
+        $config['proxy'] = PROXY_URL;
+    }
+    if (!Debug::isEnabled() && $cache->getTime()) {
+        $config['if_not_modified_since'] = $cache->getTime();
+    }
 
-	$result = _http_request($url, $config);
-	$response = [
-		'header' => $result['headers'],
-		'content' => $result['body'],
-	];
+    $result = _http_request($url, $config);
+    $response = [
+        'header' => $result['headers'],
+        'content' => $result['body'],
+    ];
 
-	switch($result['code']) {
-		case 200:
-		case 201:
-		case 202:
-			if(isset($result['headers']['cache-control'])) {
-				$cachecontrol = $result['headers']['cache-control'];
-				$lastValue = array_pop($cachecontrol);
-				$directives = explode(',', $lastValue);
-				$directives = array_map('trim', $directives);
-				if(in_array('no-cache', $directives) || in_array('no-store', $directives)) {
-					break;
-				}
-			}
-			$cache->saveData($result['body']);
-			break;
-		case 304: // Not Modified
-			$response['content'] = $cache->loadData();
-			break;
-		default:
-			throw new HttpException('', $result['code']);
-	}
-	if ($returnHeader === true) {
-		return $response;
-	}
-	return $response['content'];
+    switch ($result['code']) {
+        case 200:
+        case 201:
+        case 202:
+            if (isset($result['headers']['cache-control'])) {
+                $cachecontrol = $result['headers']['cache-control'];
+                $lastValue = array_pop($cachecontrol);
+                $directives = explode(',', $lastValue);
+                $directives = array_map('trim', $directives);
+                if (in_array('no-cache', $directives) || in_array('no-store', $directives)) {
+                    break;
+                }
+            }
+            $cache->saveData($result['body']);
+            break;
+        case 304: // Not Modified
+            $response['content'] = $cache->loadData();
+            break;
+        default:
+            throw new HttpException('', $result['code']);
+    }
+    if ($returnHeader === true) {
+        return $response;
+    }
+    return $response['content'];
 }
 
 /**
@@ -68,78 +70,78 @@ function getContents(
  */
 function _http_request(string $url, array $config = []): array
 {
-	$defaults = [
-		'useragent' => Configuration::getConfig('http', 'useragent'),
-		'timeout' => Configuration::getConfig('http', 'timeout'),
-		'headers' => [],
-		'proxy' => null,
-		'curl_options' => [],
-		'if_not_modified_since' => null,
-		'retries' => 3,
-	];
-	$config = array_merge($defaults, $config);
+    $defaults = [
+        'useragent' => Configuration::getConfig('http', 'useragent'),
+        'timeout' => Configuration::getConfig('http', 'timeout'),
+        'headers' => [],
+        'proxy' => null,
+        'curl_options' => [],
+        'if_not_modified_since' => null,
+        'retries' => 3,
+    ];
+    $config = array_merge($defaults, $config);
 
-	$ch = curl_init($url);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-	curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-	curl_setopt($ch, CURLOPT_HEADER, false);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, $config['headers']);
-	curl_setopt($ch, CURLOPT_USERAGENT, $config['useragent']);
-	curl_setopt($ch, CURLOPT_TIMEOUT, $config['timeout']);
-	curl_setopt($ch, CURLOPT_ENCODING, '');
-	curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-	if($config['proxy']) {
-		curl_setopt($ch, CURLOPT_PROXY, $config['proxy']);
-	}
-	foreach($config['curl_options'] as $key => $value) {
-		curl_setopt($ch, $key, $value);
-	}
-	if ($config['if_not_modified_since']) {
-		curl_setopt($ch, CURLOPT_TIMEVALUE, $config['if_not_modified_since']);
-		curl_setopt($ch, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
-	}
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+    curl_setopt($ch, CURLOPT_HEADER, false);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $config['headers']);
+    curl_setopt($ch, CURLOPT_USERAGENT, $config['useragent']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, $config['timeout']);
+    curl_setopt($ch, CURLOPT_ENCODING, '');
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    if ($config['proxy']) {
+        curl_setopt($ch, CURLOPT_PROXY, $config['proxy']);
+    }
+    foreach ($config['curl_options'] as $key => $value) {
+        curl_setopt($ch, $key, $value);
+    }
+    if ($config['if_not_modified_since']) {
+        curl_setopt($ch, CURLOPT_TIMEVALUE, $config['if_not_modified_since']);
+        curl_setopt($ch, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
+    }
 
-	$responseHeaders = [];
-	curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $rawHeader) use (&$responseHeaders) {
-		$len = strlen($rawHeader);
-		if (preg_match('#^HTTP/(2|1.1|1.0)#', $rawHeader) || $rawHeader === "\r\n") {
-			return $len;
-		}
-		$header = explode(':', $rawHeader);
-		if (count($header) === 1) {
-			return $len;
-		}
-		$name = mb_strtolower(trim($header[0]));
-		$value = trim(implode(':', array_slice($header, 1)));
-		if (!isset($responseHeaders[$name])) {
-			$responseHeaders[$name] = [];
-		}
-		$responseHeaders[$name][] = $value;
-		return $len;
-	});
+    $responseHeaders = [];
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $rawHeader) use (&$responseHeaders) {
+        $len = strlen($rawHeader);
+        if (preg_match('#^HTTP/(2|1.1|1.0)#', $rawHeader) || $rawHeader === "\r\n") {
+            return $len;
+        }
+        $header = explode(':', $rawHeader);
+        if (count($header) === 1) {
+            return $len;
+        }
+        $name = mb_strtolower(trim($header[0]));
+        $value = trim(implode(':', array_slice($header, 1)));
+        if (!isset($responseHeaders[$name])) {
+            $responseHeaders[$name] = [];
+        }
+        $responseHeaders[$name][] = $value;
+        return $len;
+    });
 
-	$attempts = 0;
-	while(true) {
-		$attempts++;
-		$data = curl_exec($ch);
-		if ($data !== false) {
-			// The network call was successful, so break out of the loop
-			break;
-		}
-		if ($attempts > $config['retries']) {
-			// Finally give up
-			throw new HttpException(sprintf('%s (%s)', curl_error($ch), curl_errno($ch)));
-		}
-	}
+    $attempts = 0;
+    while (true) {
+        $attempts++;
+        $data = curl_exec($ch);
+        if ($data !== false) {
+            // The network call was successful, so break out of the loop
+            break;
+        }
+        if ($attempts > $config['retries']) {
+            // Finally give up
+            throw new HttpException(sprintf('%s (%s)', curl_error($ch), curl_errno($ch)));
+        }
+    }
 
-	$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-	curl_close($ch);
-	return [
-		'code'      => $statusCode,
-		'headers'   => $responseHeaders,
-		'body'      => $data,
-	];
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [
+        'code'      => $statusCode,
+        'headers'   => $responseHeaders,
+        'body'      => $data,
+    ];
 }
 
 /**
@@ -168,28 +170,32 @@ function _http_request(string $url, array $config = []): array
  * tags when returning plaintext.
  * @return false|simple_html_dom Contents as simplehtmldom object.
  */
-function getSimpleHTMLDOM($url,
-	$header = array(),
-	$opts = array(),
-	$lowercase = true,
-	$forceTagsClosed = true,
-	$target_charset = DEFAULT_TARGET_CHARSET,
-	$stripRN = true,
-	$defaultBRText = DEFAULT_BR_TEXT,
-	$defaultSpanText = DEFAULT_SPAN_TEXT){
+function getSimpleHTMLDOM(
+    $url,
+    $header = array(),
+    $opts = array(),
+    $lowercase = true,
+    $forceTagsClosed = true,
+    $target_charset = DEFAULT_TARGET_CHARSET,
+    $stripRN = true,
+    $defaultBRText = DEFAULT_BR_TEXT,
+    $defaultSpanText = DEFAULT_SPAN_TEXT
+) {
 
-	$content = getContents(
-		$url,
-		$header ?? [],
-		$opts ?? []
-	);
-	return str_get_html($content,
-	$lowercase,
-	$forceTagsClosed,
-	$target_charset,
-	$stripRN,
-	$defaultBRText,
-	$defaultSpanText);
+    $content = getContents(
+        $url,
+        $header ?? [],
+        $opts ?? []
+    );
+    return str_get_html(
+        $content,
+        $lowercase,
+        $forceTagsClosed,
+        $target_charset,
+        $stripRN,
+        $defaultBRText,
+        $defaultSpanText
+    );
 }
 
 /**
@@ -222,49 +228,55 @@ function getSimpleHTMLDOM($url,
  * tags when returning plaintext.
  * @return false|simple_html_dom Contents as simplehtmldom object.
  */
-function getSimpleHTMLDOMCached($url,
-	$duration = 86400,
-	$header = array(),
-	$opts = array(),
-	$lowercase = true,
-	$forceTagsClosed = true,
-	$target_charset = DEFAULT_TARGET_CHARSET,
-	$stripRN = true,
-	$defaultBRText = DEFAULT_BR_TEXT,
-	$defaultSpanText = DEFAULT_SPAN_TEXT){
+function getSimpleHTMLDOMCached(
+    $url,
+    $duration = 86400,
+    $header = array(),
+    $opts = array(),
+    $lowercase = true,
+    $forceTagsClosed = true,
+    $target_charset = DEFAULT_TARGET_CHARSET,
+    $stripRN = true,
+    $defaultBRText = DEFAULT_BR_TEXT,
+    $defaultSpanText = DEFAULT_SPAN_TEXT
+) {
 
-	Debug::log('Caching url ' . $url . ', duration ' . $duration);
+    Debug::log('Caching url ' . $url . ', duration ' . $duration);
 
-	// Initialize cache
-	$cacheFac = new CacheFactory();
-	$cacheFac->setWorkingDir(PATH_LIB_CACHES);
-	$cache = $cacheFac->create(Configuration::getConfig('cache', 'type'));
-	$cache->setScope('pages');
-	$cache->purgeCache(86400); // 24 hours (forced)
+    // Initialize cache
+    $cacheFac = new CacheFactory();
+    $cacheFac->setWorkingDir(PATH_LIB_CACHES);
+    $cache = $cacheFac->create(Configuration::getConfig('cache', 'type'));
+    $cache->setScope('pages');
+    $cache->purgeCache(86400); // 24 hours (forced)
 
-	$params = array($url);
-	$cache->setKey($params);
+    $params = array($url);
+    $cache->setKey($params);
 
-	// Determine if cached file is within duration
-	$time = $cache->getTime();
-	if($time !== false
-	&& (time() - $duration < $time)
-	&& !Debug::isEnabled()) { // Contents within duration
-		$content = $cache->loadData();
-	} else { // Content not within duration
-		$content = getContents($url, $header, $opts);
-		if($content !== false) {
-			$cache->saveData($content);
-		}
-	}
+    // Determine if cached file is within duration
+    $time = $cache->getTime();
+    if (
+        $time !== false
+        && (time() - $duration < $time)
+        && !Debug::isEnabled()
+    ) { // Contents within duration
+        $content = $cache->loadData();
+    } else { // Content not within duration
+        $content = getContents($url, $header, $opts);
+        if ($content !== false) {
+            $cache->saveData($content);
+        }
+    }
 
-	return str_get_html($content,
-	$lowercase,
-	$forceTagsClosed,
-	$target_charset,
-	$stripRN,
-	$defaultBRText,
-	$defaultSpanText);
+    return str_get_html(
+        $content,
+        $lowercase,
+        $forceTagsClosed,
+        $target_charset,
+        $stripRN,
+        $defaultBRText,
+        $defaultSpanText
+    );
 }
 
 /**
@@ -281,48 +293,52 @@ function getSimpleHTMLDOMCached($url,
  * @param string $url The URL or path to the file.
  * @return string The MIME type of the file.
  */
-function getMimeType($url) {
-	static $mime = null;
+function getMimeType($url)
+{
+    static $mime = null;
 
-	if (is_null($mime)) {
-		// Default values, overriden by /etc/mime.types when present
-		$mime = array(
-			'jpg' => 'image/jpeg',
-			'gif' => 'image/gif',
-			'png' => 'image/png',
-			'image' => 'image/*'
-		);
-		// '@' is used to mute open_basedir warning, see issue #818
-		if (@is_readable('/etc/mime.types')) {
-			$file = fopen('/etc/mime.types', 'r');
-			while(($line = fgets($file)) !== false) {
-				$line = trim(preg_replace('/#.*/', '', $line));
-				if(!$line)
-					continue;
-				$parts = preg_split('/\s+/', $line);
-				if(count($parts) == 1)
-					continue;
-				$type = array_shift($parts);
-				foreach($parts as $part)
-					$mime[$part] = $type;
-			}
-			fclose($file);
-		}
-	}
+    if (is_null($mime)) {
+        // Default values, overriden by /etc/mime.types when present
+        $mime = array(
+            'jpg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'png' => 'image/png',
+            'image' => 'image/*'
+        );
+        // '@' is used to mute open_basedir warning, see issue #818
+        if (@is_readable('/etc/mime.types')) {
+            $file = fopen('/etc/mime.types', 'r');
+            while (($line = fgets($file)) !== false) {
+                $line = trim(preg_replace('/#.*/', '', $line));
+                if (!$line) {
+                    continue;
+                }
+                $parts = preg_split('/\s+/', $line);
+                if (count($parts) == 1) {
+                    continue;
+                }
+                $type = array_shift($parts);
+                foreach ($parts as $part) {
+                    $mime[$part] = $type;
+                }
+            }
+            fclose($file);
+        }
+    }
 
-	if (strpos($url, '?') !== false) {
-		$url_temp = substr($url, 0, strpos($url, '?'));
-		if (strpos($url, '#') !== false) {
-			$anchor = substr($url, strpos($url, '#'));
-			$url_temp .= $anchor;
-		}
-		$url = $url_temp;
-	}
+    if (strpos($url, '?') !== false) {
+        $url_temp = substr($url, 0, strpos($url, '?'));
+        if (strpos($url, '#') !== false) {
+            $anchor = substr($url, strpos($url, '#'));
+            $url_temp .= $anchor;
+        }
+        $url = $url_temp;
+    }
 
-	$ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
-	if (!empty($mime[$ext])) {
-		return $mime[$ext];
-	}
+    $ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+    if (!empty($mime[$ext])) {
+        return $mime[$ext];
+    }
 
-	return 'application/octet-stream';
+    return 'application/octet-stream';
 }

@@ -1,138 +1,140 @@
 <?php
-class HaveIBeenPwnedBridge extends BridgeAbstract {
-	const NAME = 'Have I Been Pwned (HIBP) Bridge';
-	const URI = 'https://haveibeenpwned.com';
-	const DESCRIPTION = 'Returns list of Pwned websites';
-	const MAINTAINER = 'VerifiedJoseph';
-	const PARAMETERS = array(array(
-		'order' => array(
-			'name' => 'Order by',
-			'type' => 'list',
-			'values' => array(
-				'Breach date' => 'breachDate',
-				'Date added to HIBP' => 'dateAdded',
-			),
-			'defaultValue' => 'dateAdded',
-		),
-		'item_limit' => array(
-			'name' => 'Limit number of returned items',
-			'type' => 'number',
-			'required' => true,
-			'defaultValue' => 20,
-		)
-	));
 
-	const CACHE_TIMEOUT = 3600;
+class HaveIBeenPwnedBridge extends BridgeAbstract
+{
+    const NAME = 'Have I Been Pwned (HIBP) Bridge';
+    const URI = 'https://haveibeenpwned.com';
+    const DESCRIPTION = 'Returns list of Pwned websites';
+    const MAINTAINER = 'VerifiedJoseph';
+    const PARAMETERS = array(array(
+        'order' => array(
+            'name' => 'Order by',
+            'type' => 'list',
+            'values' => array(
+                'Breach date' => 'breachDate',
+                'Date added to HIBP' => 'dateAdded',
+            ),
+            'defaultValue' => 'dateAdded',
+        ),
+        'item_limit' => array(
+            'name' => 'Limit number of returned items',
+            'type' => 'number',
+            'required' => true,
+            'defaultValue' => 20,
+        )
+    ));
 
-	private $breachDateRegex = '/Breach date: ([0-9]{1,2} [A-Z-a-z]+ [0-9]{4})/';
-	private $dateAddedRegex = '/Date added to HIBP: ([0-9]{1,2} [A-Z-a-z]+ [0-9]{4})/';
-	private $accountsRegex = '/Compromised accounts: ([0-9,]+)/';
+    const CACHE_TIMEOUT = 3600;
 
-	private $breaches = array();
+    private $breachDateRegex = '/Breach date: ([0-9]{1,2} [A-Z-a-z]+ [0-9]{4})/';
+    private $dateAddedRegex = '/Date added to HIBP: ([0-9]{1,2} [A-Z-a-z]+ [0-9]{4})/';
+    private $accountsRegex = '/Compromised accounts: ([0-9,]+)/';
 
-	public function collectData() {
+    private $breaches = array();
 
-		$html = getSimpleHTMLDOM(self::URI . '/PwnedWebsites');
+    public function collectData()
+    {
 
-		$breaches = array();
+        $html = getSimpleHTMLDOM(self::URI . '/PwnedWebsites');
 
-		foreach($html->find('div.row') as $breach) {
-			$item = array();
+        $breaches = array();
 
-			if ($breach->class != 'row') {
-				continue;
-			}
+        foreach ($html->find('div.row') as $breach) {
+            $item = array();
 
-			preg_match($this->breachDateRegex, $breach->find('p', 1)->plaintext, $breachDate)
-				or returnServerError('Could not extract details');
+            if ($breach->class != 'row') {
+                continue;
+            }
 
-			preg_match($this->dateAddedRegex, $breach->find('p', 1)->plaintext, $dateAdded)
-				or returnServerError('Could not extract details');
+            preg_match($this->breachDateRegex, $breach->find('p', 1)->plaintext, $breachDate)
+                or returnServerError('Could not extract details');
 
-			preg_match($this->accountsRegex, $breach->find('p', 1)->plaintext, $accounts)
-				or returnServerError('Could not extract details');
+            preg_match($this->dateAddedRegex, $breach->find('p', 1)->plaintext, $dateAdded)
+                or returnServerError('Could not extract details');
 
-			$permalink = $breach->find('p', 1)->find('a', 0)->href;
+            preg_match($this->accountsRegex, $breach->find('p', 1)->plaintext, $accounts)
+                or returnServerError('Could not extract details');
 
-			// Remove permalink
-			$breach->find('p', 1)->find('a', 0)->outertext = '';
+            $permalink = $breach->find('p', 1)->find('a', 0)->href;
 
-			$item['title'] = html_entity_decode($breach->find('h3', 0)->plaintext, ENT_QUOTES)
-				. ' - ' . $accounts[1] . ' breached accounts';
-			$item['dateAdded'] = strtotime($dateAdded[1]);
-			$item['breachDate'] = strtotime($breachDate[1]);
-			$item['uri'] = self::URI . '/PwnedWebsites' . $permalink;
+            // Remove permalink
+            $breach->find('p', 1)->find('a', 0)->outertext = '';
 
-			$item['content'] = '<p>' . $breach->find('p', 0)->innertext . '</p>';
-			$item['content'] .= '<p>' . $this->breachType($breach) . '</p>';
-			$item['content'] .= '<p>' . $breach->find('p', 1)->innertext . '</p>';
+            $item['title'] = html_entity_decode($breach->find('h3', 0)->plaintext, ENT_QUOTES)
+                . ' - ' . $accounts[1] . ' breached accounts';
+            $item['dateAdded'] = strtotime($dateAdded[1]);
+            $item['breachDate'] = strtotime($breachDate[1]);
+            $item['uri'] = self::URI . '/PwnedWebsites' . $permalink;
 
-			$this->breaches[] = $item;
-		}
+            $item['content'] = '<p>' . $breach->find('p', 0)->innertext . '</p>';
+            $item['content'] .= '<p>' . $this->breachType($breach) . '</p>';
+            $item['content'] .= '<p>' . $breach->find('p', 1)->innertext . '</p>';
 
-		$this->orderBreaches();
-		$this->createItems();
-	}
+            $this->breaches[] = $item;
+        }
 
-	/**
-	 * Extract data breach type(s)
-	 */
-	private function breachType($breach) {
+        $this->orderBreaches();
+        $this->createItems();
+    }
 
-		$content = '';
+    /**
+     * Extract data breach type(s)
+     */
+    private function breachType($breach)
+    {
 
-		if ($breach->find('h3 > i', 0)) {
+        $content = '';
 
-			foreach ($breach->find('h3 > i') as $i) {
-				$content .= $i->title . '.<br>';
-			}
+        if ($breach->find('h3 > i', 0)) {
+            foreach ($breach->find('h3 > i') as $i) {
+                $content .= $i->title . '.<br>';
+            }
+        }
 
-		}
+        return $content;
+    }
 
-		return $content;
+    /**
+     * Order Breaches by date added or date breached
+     */
+    private function orderBreaches()
+    {
 
-	}
+        $sortBy = $this->getInput('order');
+        $sort = array();
 
-	/**
-	 * Order Breaches by date added or date breached
-	 */
-	private function orderBreaches() {
+        foreach ($this->breaches as $key => $item) {
+            $sort[$key] = $item[$sortBy];
+        }
 
-		$sortBy = $this->getInput('order');
-		$sort = array();
+        array_multisort($sort, SORT_DESC, $this->breaches);
+    }
 
-		foreach ($this->breaches as $key => $item) {
-			$sort[$key] = $item[$sortBy];
-		}
+    /**
+     * Create items from breaches array
+     */
+    private function createItems()
+    {
 
-		array_multisort($sort, SORT_DESC, $this->breaches);
+        $limit = $this->getInput('item_limit');
 
-	}
+        if ($limit < 1) {
+            $limit = 20;
+        }
 
-	/**
-	 * Create items from breaches array
-	 */
-	private function createItems() {
+        foreach ($this->breaches as $breach) {
+            $item = array();
 
-		$limit = $this->getInput('item_limit');
+            $item['title'] = $breach['title'];
+            $item['timestamp'] = $breach[$this->getInput('order')];
+            $item['uri'] = $breach['uri'];
+            $item['content'] = $breach['content'];
 
-		if ($limit < 1) {
-			$limit = 20;
-		}
+            $this->items[] = $item;
 
-		foreach ($this->breaches as $breach) {
-			$item = array();
-
-			$item['title'] = $breach['title'];
-			$item['timestamp'] = $breach[$this->getInput('order')];
-			$item['uri'] = $breach['uri'];
-			$item['content'] = $breach['content'];
-
-			$this->items[] = $item;
-
-			if (count($this->items) >= $limit) {
-				break;
-			}
-		}
-	}
+            if (count($this->items) >= $limit) {
+                break;
+            }
+        }
+    }
 }
