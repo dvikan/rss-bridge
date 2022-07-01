@@ -48,7 +48,7 @@ TEXT;
             $this->collectExpandableDatas($feed);
         }
         // Sort by timestamp descending
-        usort($this->items, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        usort($this->items, fn ($a, $b) => $b['timestamp'] <=> $a['timestamp']);
         // Grab the first $limit items
         $this->items = array_slice($this->items, 0, $limit);
     }
