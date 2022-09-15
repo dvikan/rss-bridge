@@ -33,7 +33,17 @@ final class RssBridge
         if (file_exists(__DIR__ . '/../config.ini.php')) {
             $customConfig = parse_ini_file(__DIR__ . '/../config.ini.php', true, INI_SCANNER_TYPED);
         }
-        Configuration::loadConfiguration($customConfig, getenv());
+        $debug = __DIR__ . '/../DEBUG';
+        if (file_exists($debug)) {
+            $allowList = trim(file_get_contents($debug));
+        }
+        $ip = $_SERVER['REMOTE_ADDR'];
+        Configuration::loadConfiguration(
+            $customConfig,
+            getenv(),
+            $ip,
+            $allowList ?? null
+        );
 
         set_error_handler(function ($code, $message, $file, $line) {
             if ((error_reporting() & $code) === 0) {
@@ -41,7 +51,7 @@ final class RssBridge
             }
             $text = sprintf('%s at %s line %s', $message, trim_path_prefix($file), $line);
             Logger::warning($text);
-            if (Debug::isEnabled()) {
+            if (Configuration::getConfig('system', 'debug')) {
                 print sprintf('<pre>%s</pre>', $text);
             }
         });

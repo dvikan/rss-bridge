@@ -35,4 +35,32 @@ final class ConfigurationTest extends TestCase
         $this->assertSame('bbb', Configuration::getConfig('SQLiteCache', 'file'));
         $this->assertSame('bbb', Configuration::getConfig('sqlitecache', 'file'));
     }
+
+    public function test()
+    {
+        Configuration::loadConfiguration([], [], '1.2.3.4', null);
+        $this->assertFalse(Configuration::getConfig('system', 'debug'));
+        $this->assertFalse(Configuration::getConfig('system', 'is_secure'));
+    }
+
+    public function test2()
+    {
+        Configuration::loadConfiguration([], [], '1.2.3.4', '');
+        $this->assertTrue(Configuration::getConfig('system', 'debug'));
+        $this->assertFalse(Configuration::getConfig('system', 'is_secure'));
+    }
+
+    public function test3()
+    {
+        Configuration::loadConfiguration([], [], '127.0.0.1', "127.0.0.1\n");
+        $this->assertTrue(Configuration::getConfig('system', 'debug'));
+        $this->assertTrue(Configuration::getConfig('system', 'is_secure'));
+    }
+
+    public function test4()
+    {
+        Configuration::loadConfiguration([], [], '1.2.3.4', "8.8.8.8\n");
+        $this->assertFalse(Configuration::getConfig('system', 'debug'));
+        $this->assertFalse(Configuration::getConfig('system', 'is_secure'));
+    }
 }

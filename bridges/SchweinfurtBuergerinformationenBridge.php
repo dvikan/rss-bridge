@@ -44,7 +44,7 @@ class SchweinfurtBuergerinformationenBridge extends BridgeAbstract
         foreach ($articleIDs as $articleID) {
             $this->items[] = $this->generateItemFromArticle($articleID);
 
-            if (Debug::isEnabled()) {
+            if (Configuration::getConfig('system', 'debug')) {
                 break;
             }
         }

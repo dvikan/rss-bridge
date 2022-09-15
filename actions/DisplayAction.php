@@ -106,7 +106,7 @@ class DisplayAction implements ActionInterface
         if (
             $mtime !== false
             && (time() - $cache_timeout < $mtime)
-            && !Debug::isEnabled()
+            && !Configuration::getConfig('system', 'debug')
         ) {
             // Load cached data
             // Send "Not Modified" response if client supports it

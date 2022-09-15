@@ -33,7 +33,7 @@ class ConnectivityAction implements ActionInterface
 
     public function execute(array $request)
     {
-        if (!Debug::isEnabled()) {
+        if (!Configuration::getConfig('system', 'debug')) {
             throw new \Exception('This action is only available in debug mode!');
         }
 

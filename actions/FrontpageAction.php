@@ -42,16 +42,16 @@ EOD;
     {
         $warning = '';
 
-        if (Debug::isEnabled()) {
-            if (!Debug::isSecure()) {
-                $warning .= <<<EOD
-<section class="critical-warning">Warning : Debug mode is active from any location,
- make sure only you can access RSS-Bridge.</section>
-EOD;
-            } else {
+        if (Configuration::getConfig('system', 'debug')) {
+            if (Configuration::getConfig('system', 'is_secure')) {
                 $warning .= <<<EOD
 <section class="warning">Warning : Debug mode is active from your IP address,
  your requests will bypass the cache.</section>
+EOD;
+            } else {
+                $warning .= <<<EOD
+<section class="critical-warning">Warning : Debug mode is active from any location,
+ make sure only you can access RSS-Bridge.</section>
 EOD;
             }
         }

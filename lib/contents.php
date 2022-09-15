@@ -97,7 +97,7 @@ function getContents(
     if (Configuration::getConfig('proxy', 'url') && !defined('NOPROXY')) {
         $config['proxy'] = Configuration::getConfig('proxy', 'url');
     }
-    if (!Debug::isEnabled() && $cache->getTime()) {
+    if (!Configuration::getConfig('system', 'debug') && $cache->getTime()) {
         $config['if_not_modified_since'] = $cache->getTime();
     }
 
@@ -365,8 +365,9 @@ function getSimpleHTMLDOMCached(
     if (
         $time !== false
         && (time() - $duration < $time)
-        && !Debug::isEnabled()
-    ) { // Contents within duration
+        && !Configuration::getConfig('system', 'debug')
+    ) {
+        // Contents within duration
         $content = $cache->loadData();
     } else { // Content not within duration
         $content = getContents(

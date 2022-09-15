@@ -27,8 +27,12 @@ final class Configuration
     {
     }
 
-    public static function loadConfiguration(array $customConfig = [], array $env = [])
-    {
+    public static function loadConfiguration(
+        array $customConfig = [],
+        array $env = [],
+        string $ip = '',
+        ?string $allowList = null
+    ) {
         if (!file_exists(__DIR__ . '/../config.default.ini.php')) {
             throw new \Exception('The default configuration file is missing');
         }
@@ -122,6 +126,13 @@ final class Configuration
             || self::getConfig('error', 'report_limit') < 1
         ) {
             self::throwConfigError('admin', 'report_limit', 'Value is invalid');
+        }
+
+        Configuration::setConfig('system', 'is_secure', false);
+        if ($allowList !== null) {
+            $ips = explode("\n", str_replace("\r", '', $allowList));
+            Configuration::setConfig('system', 'debug', in_array($ip, $ips) || empty($allowList));
+            Configuration::setConfig('system', 'is_secure', Configuration::getConfig('system', 'debug') && !empty($allowList));
         }
     }
 
