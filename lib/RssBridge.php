@@ -25,8 +25,10 @@ final class RssBridge
 
     private function run($request): void
     {
-        Configuration::verifyInstallation();
-
+        $errors = check_installation_requirements();
+        if ($errors) {
+            throw new \Exception(sprintf('Configuration error: %s', implode(', ', $errors)));
+        }
         $customConfig = [];
         if (file_exists(__DIR__ . '/../config.ini.php')) {
             $customConfig = parse_ini_file(__DIR__ . '/../config.ini.php', true, INI_SCANNER_TYPED);

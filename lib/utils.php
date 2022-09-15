@@ -179,3 +179,45 @@ function now(): \DateTimeImmutable
 {
     return new \DateTimeImmutable();
 }
+
+function check_installation_requirements(): array
+{
+    $errors = [];
+
+    if (version_compare(\PHP_VERSION, '7.4.0') === -1) {
+        $errors[] = 'RSS-Bridge requires at least PHP version 7.4.0!';
+    }
+
+    // OpenSSL: https://www.php.net/manual/en/book.openssl.php
+    if (!extension_loaded('openssl')) {
+        $errors[] = 'openssl extension not loaded';
+    }
+
+    // libxml: https://www.php.net/manual/en/book.libxml.php
+    if (!extension_loaded('libxml')) {
+        $errors[] = 'libxml extension not loaded';
+    }
+
+    // Multibyte String (mbstring): https://www.php.net/manual/en/book.mbstring.php
+    if (!extension_loaded('mbstring')) {
+        $errors[] = 'mbstring extension not loaded';
+    }
+
+    // SimpleXML: https://www.php.net/manual/en/book.simplexml.php
+    if (!extension_loaded('simplexml')) {
+        $errors[] = 'simplexml extension not loaded';
+    }
+
+    // Client URL Library (curl): https://www.php.net/manual/en/book.curl.php
+    // Allow RSS-Bridge to run without curl module in CLI mode without root certificates
+    if (!extension_loaded('curl') && !(php_sapi_name() === 'cli' && empty(ini_get('curl.cainfo')))) {
+        $errors[] = 'curl extension not loaded';
+    }
+
+    // JavaScript Object Notation (json): https://www.php.net/manual/en/book.json.php
+    if (!extension_loaded('json')) {
+        $errors[] = 'json extension not loaded';
+    }
+
+    return $errors;
+}
