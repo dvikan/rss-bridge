@@ -246,13 +246,11 @@ class DisplayAction implements ActionInterface
             file_put_contents($filename, '[]');
         }
         $stats = Json::decode(file_get_contents($filename));
-        $id = md5(Json::encode($request));
+        $id = $request['bridge'];
         if (!isset($stats[$id])) {
-            unset($request['action']);
-            unset($request['format']);
-            unset($request['limit']);
-            $stats[$id] = $request;
-            $stats[$id]['count'] = 0;
+            $stats[$id] = [
+                'count' => 0,
+            ];
         }
         $stats[$id]['count']++;
         uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
