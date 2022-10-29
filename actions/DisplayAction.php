@@ -91,6 +91,8 @@ class DisplayAction implements ActionInterface
             )
         );
 
+        $this->updateStatistics($request);
+
         $cacheFactory = new CacheFactory();
 
         $cache = $cacheFactory->create();
@@ -235,5 +237,25 @@ class DisplayAction implements ActionInterface
             'https://github.com/RSS-Bridge/rss-bridge/issues?q=%s',
             urlencode('is:issue is:open ' . $bridge->getName())
         );
+    }
+
+    private function updateStatistics(array $request)
+    {
+        $filename = __DIR__ . '/../cache/stats.json';
+        if (!is_file($filename)) {
+            file_put_contents($filename, '[]');
+        }
+        $stats = Json::decode(file_get_contents($filename));
+        $id = md5(Json::encode($request));
+        if (!isset($stats[$id])) {
+            unset($request['action']);
+            unset($request['format']);
+            unset($request['limit']);
+            $stats[$id] = $request;
+            $stats[$id]['count'] = 0;
+        }
+        $stats[$id]['count']++;
+        uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
+        file_put_contents($filename, Json::encode($stats));
     }
 }
