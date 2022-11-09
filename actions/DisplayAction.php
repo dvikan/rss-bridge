@@ -91,8 +91,6 @@ class DisplayAction implements ActionInterface
             )
         );
 
-        $this->updateStatistics($request);
-
         $cacheFactory = new CacheFactory();
 
         $cache = $cacheFactory->create();
@@ -201,6 +199,12 @@ class DisplayAction implements ActionInterface
             ]);
         }
 
+        try {
+            $this->updateStatistics($request);
+        } catch (\Throwable $e) {
+            Logger::warning('stats', ['e' => $e]);
+        }
+        
         $format->setItems($items);
         $format->setExtraInfos($infos);
         $lastModified = $cache->getTime();
@@ -254,6 +258,6 @@ class DisplayAction implements ActionInterface
         }
         $stats[$id]['count']++;
         uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
-        file_put_contents($filename, Json::encode($stats));
+        file_put_contents($filename, Json::encode($stats), LOCK_EX);
     }
 }
