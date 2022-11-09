@@ -204,7 +204,7 @@ class DisplayAction implements ActionInterface
         } catch (\Throwable $e) {
             Logger::warning('stats', ['e' => $e]);
         }
-        
+
         $format->setItems($items);
         $format->setExtraInfos($infos);
         $lastModified = $cache->getTime();
@@ -251,11 +251,18 @@ class DisplayAction implements ActionInterface
         }
         $stats = Json::decode(file_get_contents($filename));
         $id = $request['bridge'];
+        $ip = $_SERVER['REMOTE_ADDR'];
         if (!isset($stats[$id])) {
             $stats[$id] = [
                 'count' => 0,
+                'ips' => [],
             ];
         }
+        if (in_array($ip, $stats[$id]['ips'])) {
+            return;
+        }
+
+        $stats[$id]['ips'][] = $ip;
         $stats[$id]['count']++;
         uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
         file_put_contents($filename, Json::encode($stats), LOCK_EX);
