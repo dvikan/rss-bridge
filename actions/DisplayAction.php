@@ -262,7 +262,7 @@ class DisplayAction implements ActionInterface
         unset($request['limit']);
         unset($request['format']);
         unset($request['_error_time']);
-        $uid = http_build_query($request);
+        $uid = urldecode(http_build_query($request));
         if (!isset($stats[$bridge][$ip])) {
             $stats[$bridge][$ip] = [];
         }
