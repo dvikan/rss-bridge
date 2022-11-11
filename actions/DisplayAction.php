@@ -250,20 +250,25 @@ class DisplayAction implements ActionInterface
             file_put_contents($filename, '[]');
         }
         $stats = Json::decode(file_get_contents($filename));
-        $id = $request['bridge'];
+        $bridge = $request['bridge'];
         $ip = $_SERVER['REMOTE_ADDR'];
-        if (!isset($stats[$id])) {
-            $stats[$id] = [
+        if (!isset($stats[$bridge])) {
+            $stats[$bridge] = [
                 'count' => 0,
-                'ips' => [],
+                $ip => [],
             ];
         }
-        if (in_array($ip, $stats[$id]['ips'])) {
+        unset($request['action']);
+        unset($request['bridge']);
+        unset($request['limit']);
+        unset($request['format']);
+        unset($request['_error_time']);
+        $uid = http_build_query($request);
+        if (in_array($uid, $stats[$bridge][$ip])) {
             return;
         }
-
-        $stats[$id]['ips'][] = $ip;
-        $stats[$id]['count']++;
+        $stats[$bridge][$ip][] = $uid;
+        $stats[$bridge]['count']++;
         uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
         file_put_contents($filename, Json::encode($stats), LOCK_EX);
     }
