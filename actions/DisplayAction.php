@@ -255,7 +255,6 @@ class DisplayAction implements ActionInterface
         if (!isset($stats[$bridge])) {
             $stats[$bridge] = [
                 'count' => 0,
-                $ip => [],
             ];
         }
         unset($request['action']);
@@ -264,6 +263,9 @@ class DisplayAction implements ActionInterface
         unset($request['format']);
         unset($request['_error_time']);
         $uid = http_build_query($request);
+        if (!isset($stats[$bridge][$ip])) {
+            $stats[$bridge][$ip] = [];
+        }
         if (in_array($uid, $stats[$bridge][$ip])) {
             return;
         }
