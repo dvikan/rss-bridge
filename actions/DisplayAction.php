@@ -245,16 +245,20 @@ class DisplayAction implements ActionInterface
 
     private function updateStatistics(array $request)
     {
+        $f = new BridgeFactory();
+
         $filename = __DIR__ . '/../cache/stats.json';
         if (!is_file($filename)) {
             file_put_contents($filename, '[]');
         }
         $stats = Json::decode(file_get_contents($filename));
         $bridge = $request['bridge'];
-        $ip = $_SERVER['REMOTE_ADDR'];
+        $bridge = $f->sanitizeBridgeName($bridge);
+
         if (!isset($stats[$bridge])) {
             $stats[$bridge] = [
                 'count' => 0,
+                'feeds' => [],
             ];
         }
         unset($request['action']);
@@ -263,14 +267,11 @@ class DisplayAction implements ActionInterface
         unset($request['format']);
         unset($request['_error_time']);
         $uid = urldecode(http_build_query($request));
-        if (!isset($stats[$bridge][$ip])) {
-            $stats[$bridge][$ip] = [];
-        }
-        if (in_array($uid, $stats[$bridge][$ip])) {
+        if (in_array($uid, $stats[$bridge]['feeds'])) {
             return;
         }
-        $stats[$bridge][$ip][] = $uid;
         $stats[$bridge]['count']++;
+        $stats[$bridge]['feeds'][] = $uid;
         uasort($stats, fn($a, $b) => $b['count'] <=> $a['count']);
         file_put_contents($filename, Json::encode($stats), LOCK_EX);
     }
