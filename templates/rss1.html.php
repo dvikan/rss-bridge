@@ -26,10 +26,10 @@
 
     <?php foreach ($items as $item): ?>
         <item rdf:about="<?= e($item->getURI()) ?>">
-            <title><?= e($item->getTitle()) ?></title>
-            <link><?= e($item->getURI()) ?></link>
+            <title><?= e($item->getTitle() ?? '(No title)') ?></title>
+            <link><?= e($item->getURI() ?? $link) ?></link>
             <description>
-                <?= e($item->getContent()) ?>
+                <?= e($item->getContent() ?? '') ?>
             </description>
         </item>
     <?php endforeach; ?>
