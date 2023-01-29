@@ -26,7 +26,7 @@
 
     <?php foreach ($items as $item): ?>
         <item rdf:about="<?= e($item->getURI()) ?>">
-            <title><?= e($item->getTitle() ?? '(No title)') ?></title>
+            <title><?= e($item->getTitle() ?? $item->getContent() ?? '(No title)') ?></title>
             <link><?= e($item->getURI() ?? $link) ?></link>
             <description>
                 <?= e($item->getContent() ?? '') ?>
