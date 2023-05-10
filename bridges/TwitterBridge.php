@@ -231,7 +231,12 @@ EOD
                 $cache->purgeCache(60 * 60 * 3); // 3h
                 $api = new TwitterClient($cache);
 
-                $data = $api->fetchUserTweets($this->getInput('u'));
+                $screenName = $this->getInput('u');
+                $screenName = trim($screenName);
+                $screenName = ltrim($screenName, '@');
+
+                $data = $api->fetchUserTweets($screenName);
+
                 break;
 
             case 'By keyword or hashtag':
