@@ -100,17 +100,8 @@ function getContents(
                 Debug::isEnabled() ? mb_substr($response->getBody(), 0, 500) : '',
             );
 
-            // The following code must be extracted if it grows too much
-            $cloudflareTitles = [
-                '<title>Just a moment...',
-                '<title>Please Wait...',
-                '<title>Attention Required!',
-                '<title>Security | Glassdoor',
-            ];
-            foreach ($cloudflareTitles as $cloudflareTitle) {
-                if (str_contains($response->getBody(), $cloudflareTitle)) {
-                    throw new CloudFlareException($exceptionMessage, $response->getCode());
-                }
+            if (CloudFlareException::isCloudFlareResponse($response)) {
+                throw new CloudFlareException($exceptionMessage, $response->getCode());
             }
             throw new HttpException(trim($exceptionMessage), $response->getCode());
     }
